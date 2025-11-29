@@ -1,5 +1,64 @@
 import streamlit as st
 from PIL import Image
+import requests
+
+# -------------------------------------------------------------------
+# FETCH IMAGE FROM iNaturalist
+# -------------------------------------------------------------------
+def fetch_insect_image(insect_name):
+    url = f"https://api.inaturalist.org/v1/taxa?q={insect_name}"
+
+    try:
+        r = requests.get(url, timeout=5)
+        if r.status_code != 200:
+            return None
+
+        data = r.json()
+        if len(data.get("results", [])) == 0:
+            return None
+
+        taxon = data["results"][0]
+
+        if "default_photo" not in taxon:
+            return None
+
+        return taxon["default_photo"].get("medium_url") or \
+               taxon["default_photo"].get("square_url") or \
+               taxon["default_photo"].get("url")
+
+    except:
+        return None
+
+# -------------------------------------------------------------------
+# INSECT DATA
+# -------------------------------------------------------------------
+INSECT_MAP = {
+    "Mosquitoes": [
+        "Aedes aegypti",
+        "Culex pipiens",
+        "Culex pipiens pallens",
+        "Anopheles gambiae"
+    ],
+    "Sandflies": ["Phlebotomus", "Lutzomyia"],
+    "Black flies": ["Simulium damnosum complex", "Simulium posticatum"],
+    "Biting midges": ["Culicoides", "Leptoconops", "Forcipomyia taiwana"],
+    "Horse flies / Deer flies": ["Tabanus", "Chrysops", "Haematopota", "Rhagionidae"],
+    "Eye flies / Frit flies": ["Chloropidae"],
+    "House flies / Stable flies / Testse flies": ["Glossina"],
+    "Louse flies": ["Lipoptera cervi"],
+    "Blow flies": ["Calliphoridae"],
+    "Flesh flies": ["Sarcophagidae"],
+    "Bot flies": ["Oestridae"],
+    "Fleas": ["Pulex irritans", "Ctenocephalides canis", "Ctenocephalides felis", "Xenopsylla cheopis", "Ceratophyllidae"],
+    "Bees, Wasps, Ants": ["Hymenoptera"],
+    "Lice": ["Pediculus humanus capitis", "Pediculus humanus humanus", "Pthirus pubis"],
+    "Bugs": ["Cimex lectularius", "Cimex pipistrelli", "Cimex hemipterus", "Leptocimex", "Oeciacus", "Haematosiphon", "Triatoma sanguisuga", "Reduviidae", "Palomena prasina"],
+    "Thrips": ["Thrips"],
+    "Beetles": ["Beetle"],
+    "Cockroaches": ["Indian Cockroach"],
+    "Locusts": ["Locust"],
+    "Butterflies and Moths": ["Lepidoptera"]
+}
 
 # -------------------------------------------------------------------
 # PAGE CONFIGURATION
@@ -39,7 +98,11 @@ with col1:
 # -------------------------------------------------------------------
 with col2:
     # Dropdowns
-    insect_category = st.selectbox("Dropdown for Insect Category", ["Category A", "Category B", "Category C"])
+    insect_category = st.selectbox("Dropdown for Insect Category", list(INSECT_MAP.keys()))
+    
+    # Sub-category based on selection
+    species = st.selectbox("Select Species", INSECT_MAP[insect_category])
+    
     rash_category = st.selectbox("Dropdown for Rash Category", ["Rash Type 1", "Rash Type 2", "Rash Type 3"])
     
     st.write("") # Spacer
@@ -61,7 +124,14 @@ with col2:
 # -------------------------------------------------------------------
 with col3:
     st.write("Insect Image")
-    st.markdown("<div style='border: 2px solid black; height: 150px; border-radius: 10px; display: flex; align-items: center; justify-content: center;'>Image Placeholder</div>", unsafe_allow_html=True)
+    
+    # Fetch image based on selected species
+    img_url = fetch_insect_image(species)
+    
+    if img_url:
+        st.image(img_url, use_container_width=True)
+    else:
+        st.markdown("<div style='border: 2px solid black; height: 150px; border-radius: 10px; display: flex; align-items: center; justify-content: center;'>Image Not Found</div>", unsafe_allow_html=True)
     
     st.write("") # Spacer
     
